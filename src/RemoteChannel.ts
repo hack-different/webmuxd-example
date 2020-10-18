@@ -1,5 +1,5 @@
-import transport from './transport/transport_pb'
-import MobileDevice from "./MobileDevice";
+import MobileDevice from './MobileDevice';
+import {ClientMessage, ServerMessage} from "./transport";
 
 const RemoteAddress = "ws://localhost:8080/v1/device"
 
@@ -24,23 +24,57 @@ export default class RemoteChannel {
     }
 
     dataFromServer(webSocket: WebSocket, dataEvent: MessageEvent): any {
-        transport.
+        let clientMessage = ClientMessage.decode(dataEvent.data)
+
+        if (clientMessage.toDevice) {
+            let device = this.devices[clientMessage.toDevice.serialNumber]
+            let correlationId = clientMessage.toDevice.correlationId
+
+            if (!correlationId) {
+                console.log("Message from server without correlation ID")
+                return
+            }
+
+
+            device.sendData(clientMessage.toDevice.data).then(result => {
+                if (result == null) {
+                    console.error("Endpoint does not exist")
+                }
+
+                let toDeviceResultMessage = {
+                    toDeviceResult: {
+                        correlationId: correlationId,
+                        success: (result?.status === "ok")
+                    },
+                    deviceConnected: undefined,
+                    fromDevice: undefined
+                }
+
+                this.socket.send(ServerMessage.encode(toDeviceResultMessage).finish())
+            })
+        }
     }
 
     async bindDevice(device: MobileDevice) {
         this.devices[device.serialNumber] = device
 
         device.handleData(data => {
-            let dataFromDevice = new transport.DataFromDevice()
-            dataFromDevice.setSerialnumber(device.serialNumber)
-            dataFromDevice.setData(new Uint8Array(data))
+            let fromDeviceMessage = { fromDevice:
+                    { serialNumber: device.serialNumber,
+                        data: new Uint8Array(data)
+                    },
+                deviceConnected: undefined,
+                toDeviceResult: undefined
+            }
 
-            this.socket.send(dataFromDevice.serializeBinary())
+            this.socket.send(ServerMessage.encode(fromDeviceMessage).finish())
         })
 
-        let connectEvent = new transport.DeviceConnected()
-        connectEvent.setSerialnumber(device.serialNumber)
+        let connectMessage = { fromDevice: undefined,
+            deviceConnected: { serialNumber: device.serialNumber },
+            toDeviceResult: undefined
+        }
 
-        this.socket.send(connectEvent.serializeBinary())
+        this.socket.send(ServerMessage.encode(connectMessage).finish())
     }
 }

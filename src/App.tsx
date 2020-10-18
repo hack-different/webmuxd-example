@@ -66,7 +66,9 @@ export default class App extends React.Component<{}, AppState> {
     selectDevice = (device: MobileDevice) => {
         console.log(`You selected ${device.serialNumber}`)
 
-
+        this.remoteChannel.bindDevice(device).then(() => {
+            console.log("Device bound to server")
+        })
     }
 
     showAlert = (heading: string, content: string) => {

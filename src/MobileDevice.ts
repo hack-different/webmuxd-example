@@ -91,13 +91,15 @@ export default class MobileDevice {
         }
     }
 
-    async sendData(data: ArrayBuffer): Promise<void> {
+    async sendData(data: ArrayBuffer): Promise<USBOutTransferResult | null> {
         let outputEndpoint = this.usbOutputEndpoint?.endpointNumber
 
         if (outputEndpoint !== undefined) {
             console.log(`Outputting Data to Device on ${outputEndpoint}`)
-            await this.usbDevice.transferOut(outputEndpoint, data)
+            return await this.usbDevice.transferOut(outputEndpoint, data)
         }
+
+        return null
     }
 
     handleData(callback: (data: ArrayBuffer) => void) {
