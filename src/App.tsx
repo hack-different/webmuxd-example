@@ -5,17 +5,26 @@ import Alert from 'react-bootstrap/Alert';
 import DeviceCard from "./DeviceCard";
 import MobileDevice from './MobileDevice'
 import './App.css';
+import RemoteChannel from "./RemoteChannel";
 
 type AppState = {
     devices: MobileDevice[],
     alerts: ReactElement[]
 }
 
+type MobileDeviceConnection = {
+    device: MobileDevice
+    connection: RemoteChannel
+}
+
 export default class App extends React.Component<{}, AppState> {
+    remoteChannel: RemoteChannel
+
     constructor(props: object) {
         super(props);
 
         this.state = { devices: [], alerts: [] }
+        this.remoteChannel = new RemoteChannel()
     }
 
     componentDidMount() {
@@ -41,16 +50,26 @@ export default class App extends React.Component<{}, AppState> {
 
         return (<div>
             {deviceList}
-            <Button>Add Device</Button>
+            <Button onClick={this.addDevice}>Add Device</Button>
         </div>)
     }
 
-    selectDevice(device: MobileDevice) {
-        console.log(`You selected ${device.serialNumber}`)
-        device.open()
+    addDevice = () => {
+        let app = this;
+        MobileDevice.selectDevice().then(device => {
+            app.setState(state => {
+                state.devices.push(device)
+            })
+        })
     }
 
-    showAlert(heading: string, content: string) {
+    selectDevice = (device: MobileDevice) => {
+        console.log(`You selected ${device.serialNumber}`)
+
+
+    }
+
+    showAlert = (heading: string, content: string) => {
         let element = (<Alert key={'_' + Math.random().toString(36).substr(2, 9)}>
             <Alert.Heading>Device Selected</Alert.Heading>
             <p>
