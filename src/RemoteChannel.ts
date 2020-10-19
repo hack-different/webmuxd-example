@@ -9,6 +9,7 @@ export default class RemoteChannel {
 
     constructor() {
         this.socket = new WebSocket(RemoteAddress)
+        this.socket.binaryType = 'arraybuffer';
         this.socket.onopen = event => {
             console.log(`RemoteChannel Open`)
         }
@@ -17,14 +18,15 @@ export default class RemoteChannel {
         }
         this.devices = {}
 
-        let channel = this
+        let handler = this.dataFromServer.bind(this)
         this.socket.onmessage = function(event) {
-            channel.dataFromServer(this, event)
+            handler(event.data)
         }
     }
 
-    dataFromServer(webSocket: WebSocket, dataEvent: MessageEvent): any {
-        let clientMessage = ClientMessage.decode(dataEvent.data)
+    dataFromServer(data: ArrayBuffer): any {
+        let clientMessage = ClientMessage.decode(new Uint8Array(data))
+        console.log(`ClientMessage:`, clientMessage)
 
         if (clientMessage.toDevice) {
             let device = this.devices[clientMessage.toDevice.serialNumber]
@@ -35,6 +37,7 @@ export default class RemoteChannel {
                 return
             }
 
+            console.log(`About to send ${clientMessage.toDevice.data.byteLength} bytes`)
 
             device.sendData(clientMessage.toDevice.data).then(result => {
                 if (result == null) {
@@ -58,7 +61,7 @@ export default class RemoteChannel {
     async bindDevice(device: MobileDevice) {
         this.devices[device.serialNumber] = device
 
-        device.handleData(data => {
+        device.handleData.call(device, data => {
             let fromDeviceMessage = { fromDevice:
                     { serialNumber: device.serialNumber,
                         data: new Uint8Array(data)
@@ -66,12 +69,17 @@ export default class RemoteChannel {
                 deviceConnected: undefined,
                 toDeviceResult: undefined
             }
-
-            this.socket.send(ServerMessage.encode(fromDeviceMessage).finish())
+            let messageData = ServerMessage.encode(fromDeviceMessage).finish()
+            console.log(`Sending fromDevice message to server ${messageData.byteLength} bytes`)
+            this.socket.send(messageData)
         })
 
         let connectMessage = { fromDevice: undefined,
-            deviceConnected: { serialNumber: device.serialNumber },
+            deviceConnected: {
+                serialNumber: device.serialNumber,
+                vendorId: device.usbDevice.vendorId,
+                productId: device.usbDevice.productId
+            },
             toDeviceResult: undefined
         }
 

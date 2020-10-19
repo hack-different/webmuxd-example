@@ -1,3 +1,4 @@
+
 const filters = [{ 'vendorId': 0x5ac, 'productId': 0x12A8 }]
 const USBMuxClass = 255
 const USBMuxSubclass = 254
@@ -77,6 +78,7 @@ export default class MobileDevice {
                 await this.usbDevice.claimInterface(this.usbInterface.interfaceNumber)
 
                 for (let endpoint of this.usbInterface.alternates[0].endpoints) {
+                    console.log(`Endpoint ${endpoint.endpointNumber} ${endpoint.direction}`)
                     if (endpoint.direction === "in") {
                         this.usbInputEndpoint = endpoint
                     }
@@ -84,11 +86,32 @@ export default class MobileDevice {
                         this.usbOutputEndpoint = endpoint
                     }
                 }
+            } else {
+                console.error(`No configuration ${this.usbConfiguration} or interface ${this.usbInterface}`)
             }
+
+            this.deviceReader()
         }
         catch (e) {
             console.error(e)
         }
+    }
+
+    deviceReader() {
+        console.log("MobileDevice deviceReader loop")
+        if (this.usbInputEndpoint === null) {
+            throw new Error("No input endpoint")
+        }
+
+        let inputEndpoint = this.usbInputEndpoint.endpointNumber
+        let device = this
+
+        this.usbDevice.transferIn(inputEndpoint, 4096).then(result => {
+            console.log(`Received USB data ${result.data?.byteLength} status ${result.status}`)
+            if (device.dataCallback && result.data) {
+                device.dataCallback(result.data.buffer)
+            }
+        }).then(() => { device.deviceReader.call(device) })
     }
 
     async sendData(data: ArrayBuffer): Promise<USBOutTransferResult | null> {
@@ -97,6 +120,8 @@ export default class MobileDevice {
         if (outputEndpoint !== undefined) {
             console.log(`Outputting Data to Device on ${outputEndpoint}`)
             return await this.usbDevice.transferOut(outputEndpoint, data)
+        } else {
+            console.error(`Undefined output interface ${outputEndpoint}`)
         }
 
         return null

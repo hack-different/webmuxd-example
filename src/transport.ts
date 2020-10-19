@@ -7,6 +7,8 @@ import { Writer, Reader } from 'protobufjs/minimal';
  */
 export interface DeviceConnected {
   serialNumber: string;
+  vendorId: number;
+  productId: number;
 }
 
 export interface DataFromDevice {
@@ -37,6 +39,8 @@ export interface ClientMessage {
 
 const baseDeviceConnected: object = {
   serialNumber: "",
+  vendorId: 0,
+  productId: 0,
 };
 
 const baseDataFromDevice: object = {
@@ -64,6 +68,8 @@ export const protobufPackage = ''
 export const DeviceConnected = {
   encode(message: DeviceConnected, writer: Writer = Writer.create()): Writer {
     writer.uint32(10).string(message.serialNumber);
+    writer.uint32(16).int32(message.vendorId);
+    writer.uint32(24).int32(message.productId);
     return writer;
   },
   decode(input: Uint8Array | Reader, length?: number): DeviceConnected {
@@ -75,6 +81,12 @@ export const DeviceConnected = {
       switch (tag >>> 3) {
         case 1:
           message.serialNumber = reader.string();
+          break;
+        case 2:
+          message.vendorId = reader.int32();
+          break;
+        case 3:
+          message.productId = reader.int32();
           break;
         default:
           reader.skipType(tag & 7);
@@ -90,6 +102,16 @@ export const DeviceConnected = {
     } else {
       message.serialNumber = "";
     }
+    if (object.vendorId !== undefined && object.vendorId !== null) {
+      message.vendorId = Number(object.vendorId);
+    } else {
+      message.vendorId = 0;
+    }
+    if (object.productId !== undefined && object.productId !== null) {
+      message.productId = Number(object.productId);
+    } else {
+      message.productId = 0;
+    }
     return message;
   },
   fromPartial(object: DeepPartial<DeviceConnected>): DeviceConnected {
@@ -99,11 +121,23 @@ export const DeviceConnected = {
     } else {
       message.serialNumber = "";
     }
+    if (object.vendorId !== undefined && object.vendorId !== null) {
+      message.vendorId = object.vendorId;
+    } else {
+      message.vendorId = 0;
+    }
+    if (object.productId !== undefined && object.productId !== null) {
+      message.productId = object.productId;
+    } else {
+      message.productId = 0;
+    }
     return message;
   },
   toJSON(message: DeviceConnected): unknown {
     const obj: any = {};
     message.serialNumber !== undefined && (obj.serialNumber = message.serialNumber);
+    message.vendorId !== undefined && (obj.vendorId = message.vendorId);
+    message.productId !== undefined && (obj.productId = message.productId);
     return obj;
   },
 };
