@@ -1,7 +1,7 @@
 import MobileDevice from './MobileDevice';
 import {ClientMessage, ServerMessage} from "./transport";
 
-const RemoteAddress = "ws://localhost:8080/v1/device"
+const RemoteAddress = `wss://${window.location.host}/v1/device`
 
 export default class RemoteChannel {
     socket: WebSocket
@@ -10,7 +10,7 @@ export default class RemoteChannel {
     constructor() {
         this.socket = new WebSocket(RemoteAddress)
         this.socket.binaryType = 'arraybuffer';
-        this.socket.onopen = event => {
+        this.socket.onopen = () => {
             console.log(`RemoteChannel Open`)
         }
         this.socket.onerror = event => {

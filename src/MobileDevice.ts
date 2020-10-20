@@ -65,6 +65,10 @@ export default class MobileDevice {
                             alternate.interfaceProtocol === USBMuxProtocol) {
                             this.usbInterface = usbInterface
                             this.usbConfiguration = configuration
+
+                            if (this.usbDevice.configuration !== configuration) {
+                                await this.usbDevice.selectConfiguration(configuration.configurationValue)
+                            }
                         }
                     }
                 }
