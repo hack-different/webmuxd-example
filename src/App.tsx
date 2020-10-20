@@ -12,11 +12,6 @@ type AppState = {
     alerts: ReactElement[]
 }
 
-type MobileDeviceConnection = {
-    device: MobileDevice
-    connection: RemoteChannel
-}
-
 export default class App extends React.Component<{}, AppState> {
     remoteChannel: RemoteChannel
 
@@ -24,12 +19,29 @@ export default class App extends React.Component<{}, AppState> {
         super(props);
 
         this.state = { devices: [], alerts: [] }
-        this.remoteChannel = new RemoteChannel()
+        this.remoteChannel = new RemoteChannel(true)
     }
 
     componentDidMount() {
         MobileDevice.getDevices().then(devices => {
             this.setState({devices: devices})
+
+            this.remoteChannel.onOpen(() => {
+                devices.forEach(device => {
+                    device.open().then(() => {
+                        window.addEventListener("beforeunload", () => {
+                            console.log(`beforeunload ${device.serialNumber}`)
+                            device.close().then(() => {
+                                console.log("beforeunload event complete")
+                            })
+                        })
+
+                        this.remoteChannel.bindDevice(device).then(() => {
+                            console.log("Device bound to server")
+                        })
+                    })
+                })
+            })
         })
     }
 
@@ -45,7 +57,7 @@ export default class App extends React.Component<{}, AppState> {
 
     deviceBrowser() {
         let deviceList = this.state.devices.map(device => {
-            return <DeviceCard device={device} key={device.serialNumber} selected={this.selectDevice.bind(this)} />
+            return <DeviceCard device={device} key={device.serialNumber} />
         })
 
         return (<div>
@@ -59,16 +71,6 @@ export default class App extends React.Component<{}, AppState> {
         MobileDevice.selectDevice().then(device => {
             app.setState(state => {
                 state.devices.push(device)
-            })
-        })
-    }
-
-    selectDevice = (device: MobileDevice) => {
-        console.log(`You selected ${device.serialNumber}`)
-
-        device.open().then(() => {
-            this.remoteChannel.bindDevice(device).then(() => {
-                console.log("Device bound to server")
             })
         })
     }

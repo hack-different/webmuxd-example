@@ -3,16 +3,11 @@ import Card from 'react-bootstrap/Card'
 import MobileDevice from "./MobileDevice";
 
 type DeviceCardProps = {
-    device: MobileDevice,
-    selected: (device: MobileDevice) => void
+    device: MobileDevice
 }
 
 export default class DeviceCard extends Component<DeviceCardProps, {}>{
-    onSelected(state: any) {
-        if (this.props.selected !== undefined) {
-            this.props.selected(this.props.device)
-        }
-    }
+
 
     render() {
         return <Card className="deviceCard">
@@ -20,7 +15,6 @@ export default class DeviceCard extends Component<DeviceCardProps, {}>{
             <Card.Body>
                 <Card.Body>{this.props.device.serialNumber}</Card.Body>
             </Card.Body>
-            <Card.Link href="#" onClick={this.onSelected.bind(this)}>Select</Card.Link>
         </Card>
     }
 }

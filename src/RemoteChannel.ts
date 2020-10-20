@@ -7,20 +7,47 @@ export default class RemoteChannel {
     socket: WebSocket
     devices: {[deviceId: string]: MobileDevice}
 
-    constructor() {
+    _reopen: boolean
+    _openCallback: (() => void) | null
+
+    constructor(reopen: boolean) {
+        this.devices = {}
+        this._reopen = reopen;
         this.socket = new WebSocket(RemoteAddress)
+        this._openCallback = null
+        this._open()
+    }
+
+    _open() {
         this.socket.binaryType = 'arraybuffer';
         this.socket.onopen = () => {
             console.log(`RemoteChannel Open`)
+            if (this._openCallback) {
+                this._openCallback()
+            }
         }
         this.socket.onerror = event => {
             console.error(`RemoteChannel Error: ${event}`)
         }
-        this.devices = {}
 
         let handler = this.dataFromServer.bind(this)
         this.socket.onmessage = function(event) {
             handler(event.data)
+        }
+
+        if (this._reopen) {
+            this.socket.onclose = () => {
+                console.log("Reopening websocket due to close")
+                this.socket = new WebSocket(RemoteAddress)
+                this._open()
+            }
+        }
+    }
+
+    onOpen(callback: () => void) {
+        this._openCallback = callback
+        if (this.socket.readyState === WebSocket.OPEN) {
+            this._openCallback()
         }
     }
 
